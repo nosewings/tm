@@ -1,5 +1,8 @@
 module TM.Machine
   ( Result
+  , pattern Reject
+  , pattern Accept
+  , pattern Continue
   , DeltaFunction
   , Machine
   , delta
@@ -24,6 +27,9 @@ import TM.Tape (Tape, Shift(..))
 import qualified TM.Tape as Tape
 
 type Result a = Either Bool a
+pattern Reject = Left False
+pattern Accept = Left True
+pattern Continue x = Right x
 
 type DeltaFunction q g = q -> Tape.Symbol g -> Result (Tape.Symbol g, Shift, q)
 
