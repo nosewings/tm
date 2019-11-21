@@ -1,101 +1,107 @@
-module TM.Examples.UnaryAdditionChecker where
+module TM.Examples.UnaryAdditionChecker
+  ( Alphabet(..)
+  , State(..)
+  , unaryAdditionChecker
+  ) where
 
-import TM.Tape
+import Data.Void
+
+import TM.PP
+import TM.Action
 import TM.Machine hiding (delta)
-import qualified TM.Machine as Machine
+import TM.Next
+import TM.Tape
 
 data Alphabet = O | P | E
+  deriving (Show)
 
-instance Show Alphabet where
-  show O = "1"
-  show P = "+"
-  show E = "="
+instance PP Alphabet where
+  pp O = "1"
+  pp P = "+"
+  pp E = "="
+
+pattern O' = InputSymbol O
+pattern P' = InputSymbol P
+pattern E' = InputSymbol E
 
 data State
-  = Zero
-  | One
-  | Two
-  | Three
-  | Four
-  | Five
-  | Six
-  | Seven
-  | Eight
+  = Q0
+  | Q1
+  | Q2
+  | Q3
+  | Q4
+  | Q5
+  | Q6
+  | Q7
+  | Q8
+  deriving (Show)
 
-instance Show State where
-  show Zero  = "0"
-  show One   = "1"
-  show Two   = "2"
-  show Three = "3"
-  show Four  = "4"
-  show Five  = "5"
-  show Six   = "6"
-  show Seven = "7"
-  show Eight = "8"
+pattern Q0' = Continue Q0
+pattern Q1' = Continue Q1
+pattern Q2' = Continue Q2
+pattern Q3' = Continue Q3
+pattern Q4' = Continue Q4
+pattern Q5' = Continue Q5
+pattern Q6' = Continue Q6
+pattern Q7' = Continue Q7
+pattern Q8' = Continue Q8
 
-delta :: DeltaFunction State Alphabet
+instance PP State where
+  pp Q0 = "0"
+  pp Q1 = "1"
+  pp Q2 = "2"
+  pp Q3 = "3"
+  pp Q4 = "4"
+  pp Q5 = "5"
+  pp Q6 = "6"
+  pp Q7 = "7"
+  pp Q8 = "8"
 
--- Scan right until we see "+".
-delta Zero (Just O) = Continue (Just O, R, Zero)
-delta Zero (Just P) = Continue (Just P, R, One)
-delta Zero (Just E) = Reject
-delta Zero Nothing  = Reject
+delta :: DeltaFunction State Alphabet Void
 
--- Scan right until we see "=".
-delta One (Just O) = Continue (Just O, R, One)
-delta One (Just P) = Reject
-delta One (Just E) = Continue (Just E, R, Two)
-delta One Nothing  = Reject
+delta Q0 O'    = mkAction O' R Q0'
+delta Q0 P'    = mkAction P' R Q1'
+delta Q0 E'    = reject E'
+delta Q0 Blank = reject Blank
 
--- Scan right until we see a blank, then write "=".
-delta Two (Just O) = Continue (Just O, R, Two)
-delta Two (Just P) = Reject
-delta Two (Just E) = Reject
-delta Two Nothing  = Continue (Just E, L, Three)
+delta Q1 O'    = mkAction O' R Q1'
+delta Q1 P'    = reject P'
+delta Q1 E'    = mkAction E' R Q2'
+delta Q1 Blank = reject Blank
 
--- Scan left until we see "□".
-delta Three (Just O) = Continue (Just O, L, Three)
-delta Three (Just P) = Continue (Just P, L, Three)
-delta Three (Just E) = Continue (Just E, L, Three)
-delta Three Nothing  = Continue (Nothing, R, Four)
+delta Q2 O'    = mkAction O' R Q2'
+delta Q2 P'    = reject P'
+delta Q2 E'    = reject E'
+delta Q2 Blank = mkAction E' L Q3'
 
--- If we see "1", erase it and prepare to erase the corresponding "1" on the
--- other side of "=".
--- If we see "+", erase it and continue.
--- If we see "=", prepare for the final check.
--- "□" cannot occur.
-delta Four (Just O) = Continue (Nothing, R, Five)
-delta Four (Just P) = Continue (Nothing, R, Four)
-delta Four (Just E) = Continue (Nothing, R, Eight)
-delta Four Nothing  = Reject
+delta Q3 O'    = mkAction O' L Q3'
+delta Q3 P'    = mkAction P' L Q3'
+delta Q3 E'    = mkAction E' L Q3'
+delta Q3 Blank = mkAction Blank R Q4'
 
--- Scan right until we see "=".
--- "□" cannot occur.
-delta Five (Just O) = Continue (Just O, R, Five)
-delta Five (Just P) = Continue (Just P, R, Five)
-delta Five (Just E) = Continue (Just E, R, Six)
-delta Five Nothing  = Reject
+delta Q4 O'    = mkAction Blank R Q5'
+delta Q4 P'    = mkAction Blank R Q4'
+delta Q4 E'    = mkAction Blank R Q8'
+delta Q4 Blank = reject Blank
 
--- Scan right until we see "1". Erase it and go back to the beginning.
--- "+" cannot occur.
--- If we see "=", reject.
-delta Six (Just O) = Continue (Nothing, L, Seven)
-delta Six (Just P) = Reject
-delta Six (Just E) = Reject
-delta Six Nothing  = Continue (Nothing, R, Six)
+delta Q5 O'    = mkAction O' R Q5'
+delta Q5 P'    = mkAction P' R Q5'
+delta Q5 E'    = mkAction E' R Q6'
+delta Q5 Blank = reject Blank
 
--- Scan left until we see "=".
--- "1" and "+" cannot occur.
-delta Seven (Just O) = Reject
-delta Seven (Just P) = Reject
-delta Seven (Just E) = Continue (Just E, L, Three)
-delta Seven Nothing  = Continue (Nothing, L, Seven)
+delta Q6 O'    = mkAction Blank L Q7'
+delta Q6 P'    = reject P'
+delta Q6 E'    = reject E'
+delta Q6 Blank = mkAction Blank R Q6'
 
--- The final check. Scan right until we see "=", and then accept. Reject on
--- anything else that isn't blank.
-delta Eight (Just O) = Reject
-delta Eight (Just P) = Reject
-delta Eight (Just E) = Accept
-delta Eight Nothing  = Continue (Nothing, R, Eight)
+delta Q7 O'    = reject O'
+delta Q7 P'    = reject P'
+delta Q7 E'    = mkAction E' L Q3'
+delta Q7 Blank = mkAction Blank L Q7'
 
-unaryAdditionChecker = Machine.make delta Zero
+delta Q8 O'    = reject O'
+delta Q8 P'    = reject P'
+delta Q8 E'    = accept Blank
+delta Q8 Blank = mkAction Blank R Q8'
+
+unaryAdditionChecker = mkMachine Q0 delta

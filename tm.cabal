@@ -6,17 +6,27 @@ maintainer:          ncolthar@trinity.edu
 build-type:          Simple
 
 library
-  exposed-modules:      TM.Tape
+  exposed-modules:      TM.Action
+                      , TM.Answer
+                      , TM.Configuration
                       , TM.Machine
+                      , TM.Next
                       , TM.PP
+                      , TM.Tape
+                      , TM.Examples.Copier
                       , TM.Examples.CopyChecker
+                      , TM.Examples.UnaryAdder
                       , TM.Examples.UnaryAdditionChecker
+                      , TM.Examples.UnarySubtracter
   build-depends:        base       ^>= 4.12
                       , containers ^>= 0.6.2.1
                       , lens       ^>= 4.18.1
+                      , mtl        ^>= 2.2.2
+                      , text       ^>= 1.2.4.0
   hs-source-dirs:       src
-  default-extensions:   OverloadedLists
-                      , PatternSynonyms
-                      , ScopedTypeVariables
-                      , TemplateHaskell
   default-language:     Haskell2010
+  default-extensions:   DeriveFunctor
+                      , OverloadedLists
+                      , OverloadedStrings
+                      , PatternSynonyms
+                      , TemplateHaskell

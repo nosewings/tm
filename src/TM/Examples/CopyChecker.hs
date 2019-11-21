@@ -1,95 +1,116 @@
 module TM.Examples.CopyChecker
- ( Alphabet(..)
- , State(..)
- , copyChecker
- ) where
+  ( Alphabet(..)
+  , State(..)
+  , copyChecker
+  ) where
 
-import TM.Tape (Shift(..))
-import qualified TM.Tape as Tape
-import TM.Machine (Machine(..))
-import qualified TM.Machine as Machine
+import Data.Void
+
+import TM.PP
+import TM.Action
+import TM.Machine hiding (delta)
+import TM.Next
+import TM.Tape
 
 data Alphabet = A | B | P
+  deriving (Show)
 
-instance Show Alphabet where
-  show A = "a"
-  show B = "b"
-  show P = "#"
+instance PP Alphabet where
+  pp A = "a"
+  pp B = "b"
+  pp P = "#"
+
+pattern A' = InputSymbol A
+pattern B' = InputSymbol B
+pattern P' = InputSymbol P
 
 data State
-  = Zero
-  | One
-  | Two
-  | Three
-  | Four
-  | Five
-  | Six
-  | Seven
-  | Eight
-  | Nine
+  = Q0
+  | Q1
+  | Q2
+  | Q3
+  | Q4
+  | Q5
+  | Q6
+  | Q7
+  | Q8
+  | Q9
+  deriving (Show)
 
-instance Show State where
-  show Zero = "0"
-  show One = "1"
-  show Two = "2"
-  show Three = "3"
-  show Four = "4"
-  show Five = "5"
-  show Six = "6"
-  show Seven = "7"
-  show Eight = "8"
-  show Nine = "9"
+pattern Q0' = Continue Q0
+pattern Q1' = Continue Q1
+pattern Q2' = Continue Q2
+pattern Q3' = Continue Q3
+pattern Q4' = Continue Q4
+pattern Q5' = Continue Q5
+pattern Q6' = Continue Q6
+pattern Q7' = Continue Q7
+pattern Q8' = Continue Q8
+pattern Q9' = Continue Q9
 
-delta :: Machine.DeltaFunction State Alphabet
+instance PP State where
+  pp Q0 = "0"
+  pp Q1 = "1"
+  pp Q2 = "2"
+  pp Q3 = "3"
+  pp Q4 = "4"
+  pp Q5 = "5"
+  pp Q6 = "6"
+  pp Q7 = "7"
+  pp Q8 = "8"
+  pp Q9 = "9"
 
-delta Zero (Just A) = Right (Just A, R, Zero)
-delta Zero (Just B) = Right (Just B, R, Zero)
-delta Zero (Just P) = Right (Just P, R, One)
-delta Zero Nothing  = Left False
+delta :: DeltaFunction State Alphabet Void
 
-delta One (Just A) = Right (Just A, R, One)
-delta One (Just B) = Right (Just B, R, One)
-delta One (Just P) = Left False
-delta One Nothing  = Right (Just P, L, Two)
+delta Q0 A'    = mkAction A' R Q0'
+delta Q0 B'    = mkAction B' R Q0'
+delta Q0 P'    = mkAction P' R Q1'
+delta Q0 Blank = reject Blank
 
-delta Two (Just A) = Right (Just A, L, Two)
-delta Two (Just B) = Right (Just B, L, Two)
-delta Two (Just P) = Right (Just P, L, Two)
-delta Two Nothing  = Right (Nothing, R, Three)
+delta Q1 A'    = mkAction A' R Q1'
+delta Q1 B'    = mkAction B' R Q1'
+delta Q1 P'    = reject P'
+delta Q1 Blank = mkAction P' L Q2'
 
-delta Three (Just A) = Right (Nothing, R, Four)
-delta Three (Just B) = Right (Nothing, R, Six)
-delta Three (Just P) = Right (Nothing, R, Nine)
-delta Three Nothing  = Left False
+delta Q2 A'    = mkAction A' L Q2'
+delta Q2 B'    = mkAction B' L Q2'
+delta Q2 P'    = mkAction P' L Q2'
+delta Q2 Blank = mkAction Blank R Q3'
 
-delta Four (Just A) = Right (Just A, R, Four)
-delta Four (Just B) = Right (Just B, R, Four)
-delta Four (Just P) = Right (Just P, R, Five)
-delta Four Nothing  = Left False
+delta Q3 A'    = mkAction Blank R Q4'
+delta Q3 B'    = mkAction Blank R Q6'
+delta Q3 P'    = mkAction Blank R Q9'
+delta Q3 Blank = reject Blank
 
-delta Five (Just A) = Right (Nothing, L, Eight)
-delta Five (Just B) = Left False
-delta Five (Just P) = Left False
-delta Five Nothing  = Right (Nothing, R, Five)
+delta Q4 A'    = mkAction A' R Q4'
+delta Q4 B'    = mkAction B' R Q4'
+delta Q4 P'    = mkAction P' R Q5'
+delta Q4 Blank = reject Blank
 
-delta Six (Just A) = Right (Just A, R, Six)
-delta Six (Just B) = Right (Just B, R, Six)
-delta Six (Just P) = Right (Just P, R, Seven)
-delta Six Nothing  = Left False
+delta Q5 A'    = mkAction Blank L Q8'
+delta Q5 B'    = reject B'
+delta Q5 P'    = reject P'
+delta Q5 Blank = mkAction Blank R Q5'
 
-delta Seven (Just A) = Left False
-delta Seven (Just B) = Right (Nothing, L, Eight)
-delta Seven (Just P) = Left False
-delta Seven Nothing  = Right (Nothing, R, Seven)
+delta Q6 A'    = mkAction A' R Q6'
+delta Q6 B'    = mkAction B' R Q6'
+delta Q6 P'    = mkAction P' R Q7'
+delta Q6 Blank = reject Blank
 
-delta Eight (Just A) = Right (Just A, L, Eight)
-delta Eight (Just B) = Right (Just B, L, Eight)
-delta Eight (Just P) = Right (Just P, L, Two)
-delta Eight Nothing  = Right (Nothing, L, Eight)
+delta Q7 A'    = reject A'
+delta Q7 B'    = mkAction Blank L Q8'
+delta Q7 P'    = reject P'
+delta Q7 Blank = mkAction Blank R Q7'
 
-delta Nine (Just A) = Left False
-delta Nine (Just B) = Left False
-delta Nine (Just P) = Left True
-delta Nine Nothing  = Right (Nothing, R, Nine)
+delta Q8 A'    = reject A'
+delta Q8 B'    = reject B'
+delta Q8 P'    = mkAction P' L Q2'
+delta Q8 Blank = mkAction Blank L Q8'
 
-copyChecker = Machine.make delta Zero
+delta Q9 A'    = reject A'
+delta Q9 B'    = reject B'
+delta Q9 P'    = accept Blank
+delta Q9 Blank = mkAction Blank R Q9'
+
+copyChecker :: Machine State Alphabet Void
+copyChecker = mkMachine Q0 delta
