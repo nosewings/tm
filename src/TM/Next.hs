@@ -6,7 +6,6 @@ import TM.PP
 import TM.Answer
 
 data Next q = Stop Answer | Continue q
-  deriving Functor
 makePrisms ''Next
 
 pattern Reject' = Stop Reject
