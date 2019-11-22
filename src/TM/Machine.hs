@@ -55,7 +55,7 @@ newtype Trace q s g = Trace { unTrace :: [Configuration q s g] }
 
 trace :: Machine q s g -> Configuration q s g -> Trace q s g
 trace m =  Just
-        .> iterate ((>>= step m))
+        .> iterate (>>= step m)
         .> takeWhile isJust
         .> map fromJust
         .> Trace
